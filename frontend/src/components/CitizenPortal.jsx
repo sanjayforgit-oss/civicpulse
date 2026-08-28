@@ -164,7 +164,7 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
             style={{ fontSize: '0.8rem', padding: '8px 14px', border: 'none' }}
           >
             <Globe size={15} />
-            <span>Interactive Map</span>
+            <span>Heat Map</span>
           </button>
         </div>
       </div>

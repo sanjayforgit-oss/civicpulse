@@ -137,27 +137,26 @@ export default function CivicHeatmapView({ publicIssues = [], onViewDetails }) {
       return matchCat && matchStat;
     });
 
-    // A. Zoom Level < 13: Render True Leaflet Heatmap Layer
-    const heatPoints = filtered.map(c => [
-      c.lat || c.latitude,
-      c.lon || c.longitude,
-      c.intensity || 0.8
-    ]);
-    
-    if (heatPoints.length > 0) {
-      const heatLayer = L.heatLayer(heatPoints, {
-        radius: 25,
-        blur: 15,
-        maxZoom: 13,
-        gradient: {
-          0.4: '#38bdf8', // Low (Blue)
-          0.6: '#eab308', // Moderate (Yellow)
-          0.8: '#f97316', // High (Orange)
-          1.0: '#ef4444'  // Critical (Red)
-        }
+    // A. Zoom Level < 13: Render Smooth Gradient Heatmap Density Circles (Aggregated Anonymized Hotspots)
+    filtered.forEach(c => {
+      const lat = c.lat || c.latitude;
+      const lon = c.lon || c.longitude;
+      const intensity = c.intensity || 0.7;
+      
+      let heatColor = '#38bdf8'; // Low 🟢/🔵
+      if (intensity >= 0.85) heatColor = '#ef4444'; // Very High 🔴
+      else if (intensity >= 0.70) heatColor = '#f97316'; // High 🟠
+      else if (intensity >= 0.50) heatColor = '#eab308'; // Moderate 🟡
+
+      const heatCircle = L.circle([lat, lon], {
+        radius: Math.max(1200, intensity * 4500),
+        color: heatColor,
+        fillColor: heatColor,
+        fillOpacity: 0.38,
+        stroke: false
       });
-      heatLayer.addTo(markersGroupRef.current);
-    }
+      heatCircle.addTo(markersGroupRef.current);
+    });
 
 
     // B. Zoom Level >= 11: Render Interactive Public Complaint Markers with Category Badges
