@@ -1,8 +1,10 @@
-import React, { useRef } from 'react';
-import { Camera, Image as ImageIcon, RefreshCw, Trash2, CheckCircle2, MapPin } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Camera, Image as ImageIcon, RefreshCw, Trash2, CheckCircle2, MapPin, Loader2 } from 'lucide-react';
+import { apiService } from '../../utils/apiService';
 
 export default function PhotoCaptureStep({ photoUrl, setPhotoUrl, onExifLocationDetected }) {
   const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const sampleDemoImages = [
     { label: 'Pothole Defect', url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=600&q=80', lat: 13.0827, lng: 80.2707, ward: 'Ward 104, Anna Nagar, Chennai' },
@@ -10,7 +12,7 @@ export default function PhotoCaptureStep({ photoUrl, setPhotoUrl, onExifLocation
     { label: 'Garbage Dump', url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80', lat: 11.0168, lng: 76.9558, ward: 'Ward 12, Gandhipuram, Coimbatore' }
   ];
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -24,15 +26,41 @@ export default function PhotoCaptureStep({ photoUrl, setPhotoUrl, onExifLocation
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhotoUrl(reader.result);
-      // Simulated EXIF GPS Metadata extraction
-      if (onExifLocationDetected) {
-        onExifLocationDetected({ lat: 13.0827, lng: 80.2707, ward: 'Ward 104, EXIF Camera Location', source: 'EXIF' });
+    try {
+      setIsUploading(true);
+      // Upload to backend for EXIF extraction & AI Authenticity Validation
+      const uploadRes = await apiService.uploadMediaPii(file, null, null);
+      
+      if (uploadRes.is_ai_generated) {
+        alert('🚫 UPLOAD REJECTED: Our AI Validation Engine has flagged this image as synthetically generated (Deepfake/AI). Please capture a genuine physical photo of the defect.');
+        setPhotoUrl('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+
+      // If authentic, proceed with rendering preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPhotoUrl(reader.result);
+        
+        // Use real EXIF GPS extracted by the backend if present
+        if (onExifLocationDetected && uploadRes.exif_extracted_gps) {
+          onExifLocationDetected({ 
+            lat: uploadRes.exif_extracted_gps.latitude, 
+            lng: uploadRes.exif_extracted_gps.longitude, 
+            ward: 'EXIF Verified Location', 
+            source: 'EXIF' 
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+
+    } catch (err) {
+      alert('Failed to upload and verify image. Please try again.');
+      console.error(err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const selectSampleImage = (item) => {

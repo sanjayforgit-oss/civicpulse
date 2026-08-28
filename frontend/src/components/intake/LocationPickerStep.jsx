@@ -112,6 +112,7 @@ export default function LocationPickerStep({ locationData, setLocationData, onCo
         },
         (error) => {
           // Fallback location on browser denied/timeout
+          alert('⚠️ GPS Access Denied or Timeout! The browser is blocking location access. We have fallen back to the default map view. Please manually drag the pin or allow location permissions.');
           setLocationData(prev => ({
             ...prev,
             lat: 13.0827,
@@ -126,6 +127,7 @@ export default function LocationPickerStep({ locationData, setLocationData, onCo
         { enableHighAccuracy: true, timeout: 5000 }
       );
     } else {
+      alert('Geolocation is not supported by your browser.');
       setLoadingGps(false);
     }
   };
