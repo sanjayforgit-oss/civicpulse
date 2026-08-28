@@ -474,7 +474,7 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
       {/* TAB 3: STANDALONE HEATMAP MAP */}
       {activeTab === 'heatmap' && (
         <CivicHeatmapView 
-          publicIssues={publicComplaints}
+          publicIssues={publicComplaintsList}
           onViewDetails={(comp) => {
             const found = complaints.find(c => c.id === comp.id);
             if (found) {
