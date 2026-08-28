@@ -6,6 +6,8 @@ import LocationPickerStep from './LocationPickerStep';
 import ReviewSubmitStep from './ReviewSubmitStep';
 import { apiService } from '../../utils/apiService';
 import { syncEngine } from '../../utils/syncEngine';
+import { db } from '../../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function ReportIssueContainer({ userAuth, onComplaintCreated }) {
   const [step, setStep] = useState(1); // 1: Photo, 2: Description & Voice Box, 3: Location, 4: Review
@@ -95,6 +97,20 @@ export default function ReportIssueContainer({ userAuth, onComplaintCreated }) {
         // Online intake API submission
         const res = await apiService.createIssue(issuePayload);
 
+        // Also sync directly to Firebase Firestore for teammate's database
+        try {
+          const issuesCol = collection(db, 'issues');
+          await addDoc(issuesCol, {
+            ...issuePayload,
+            backend_issue_id: res.id,
+            reporterEmail: userAuth?.email || 'citizen@example.com',
+            status: 'OPEN',
+            created_at: serverTimestamp()
+          });
+        } catch (firebaseErr) {
+          console.warn('Firebase Firestore mirror sync note:', firebaseErr.message);
+        }
+
         setFeedback({
           type: 'success',
           text: `Complaint registered successfully! Issue ID: ${res.id}`
@@ -104,6 +120,7 @@ export default function ReportIssueContainer({ userAuth, onComplaintCreated }) {
           onComplaintCreated(res);
         }
       }
+
 
       // Reset form
       setTimeout(() => {
