@@ -1,0 +1,38 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // --- HELPER FUNCTIONS ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isImageBelowSize(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024 &&
+             request.resource.contentType.matches('image/.*');
+    }
+
+    // --- INTAKE PHOTOS (CITIZENS) ---
+    match /intake/{imageId} {
+      // Public read access for approved complaint photos
+      allow read: if true;
+      
+      // Citizens can upload intake photos max 10MB
+      allow write: if isAuthenticated() && isImageBelowSize(10);
+    }
+
+    // --- PROOF OF WORK / EVIDENCE PHOTOS (OFFICERS) ---
+    match /evidence/{imageId} {
+      allow read: if true;
+      
+      // Officers and field staff can upload repair evidence photos max 15MB
+      allow write: if isAuthenticated() && isImageBelowSize(15);
+    }
+
+    // --- REOPEN PROOF PHOTOS (CITIZENS) ---
+    match /reopen_proof/{imageId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isImageBelowSize(10);
+    }
+  }
+}

@@ -1,0 +1,29 @@
+services:
+  # 1. FastAPI AI & Officer Operations Backend
+  - type: web
+    name: civicpulse-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn frontend.backend.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+
+  # 2. Vite React Frontend (Static Site)
+  - type: web
+    name: civicpulse-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: civicpulse-backend
+          property: host

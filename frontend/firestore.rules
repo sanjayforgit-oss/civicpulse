@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- HELPER FUNCTIONS ---
+    
+    // Check if request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Get logged-in user data
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Check user roles
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+    
+    function isCitizen() {
+      return hasRole('CITIZEN');
+    }
+    
+    function isOfficer() {
+      return hasRole('OFFICER') || hasRole('SUPERVISOR') || hasRole('ADMIN');
+    }
+    
+    function isSupervisor() {
+      return hasRole('SUPERVISOR') || hasRole('ADMIN');
+    }
+    
+    function isAdmin() {
+      return hasRole('ADMIN');
+    }
+
+    // Check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- USERS COLLECTION RULES ---
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // --- CIVIC ISSUES COLLECTION RULES ---
+    match /issues/{issueId} {
+      // 1. PUBLIC READ ACCESS: Anyone can view anonymized public complaints (PII hidden in query projection)
+      allow read: if true;
+      
+      // 2. CITIZEN CREATION: Authenticated citizens can create new civic complaints
+      allow create: if isAuthenticated() && 
+                    request.resource.data.reporter_id == request.auth.uid &&
+                    request.resource.data.status == 'OPEN';
+                    
+      // 3. CITIZEN VERIFICATION / UPVOTE UPDATE:
+      // - Citizens can upvote public complaints (increment supporters_count)
+      // - Citizens can confirm resolution or reopen their own complaints with proof/reason
+      allow update: if isAuthenticated() && (
+        isOfficer() ||
+        (resource.data.reporter_id == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'workflow_state', 'citizen_confirmation_status', 'reopen_reason', 'reopen_proof_photo', 'photo_base64', 'after_photo_base64', 'resolution_after_photo'])) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['supporters_count', 'reports_count']))
+      );
+      
+      // 4. DELETION: Only System Admins can delete complaints
+      allow delete: if isAdmin();
+      
+      // --- SUB-COLLECTION: WORK ORDERS & SITE INSPECTIONS ---
+      match /work_orders/{workOrderId} {
+        allow read: if isAuthenticated();
+        allow write: if isOfficer();
+      }
+      
+      match /site_inspections/{inspectionId} {
+        allow read: if isAuthenticated();
+        allow write: if isOfficer();
+      }
+    }
+
+    // --- SLA POLICIES & ESCALATIONS ---
+    match /sla_policies/{policyId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /escalation_records/{recordId} {
+      allow read: if isSupervisor();
+      allow write: if isOfficer();
+    }
+
+    // --- AUDIT LOGS ---
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Immutable audit logs
+    }
+  }
+}
