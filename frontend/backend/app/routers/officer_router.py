@@ -119,9 +119,11 @@ def get_officer_dashboard(
                 "is_demo_mode": sla_engine.is_demo_mode,
                 "active_policy_summary": "Demo Policy: 2 Mins for Critical/High, 5 Mins for Normal/Low" if sla_engine.is_demo_mode else "Real Policy: 15 Days for Critical/High, 30 Days for Normal/Low"
             },
-            "assigned_complaints": formatted_issues
+            "assigned_complaints": formatted_issues,
+            "assigned_issues": formatted_issues
         }
     )
+
 
 # 2. SUPERVISOR ESCALATED COMPLAINTS VIEW
 @router.get("/supervisor/escalations", response_model=StandardResponse)

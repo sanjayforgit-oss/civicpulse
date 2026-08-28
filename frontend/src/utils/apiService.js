@@ -248,7 +248,23 @@ export const apiService = {
   },
 
 
+  translateText: async (text, sourceLang = 'auto') => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/text/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, source_language: sourceLang, target_language: 'en-IN' })
+      });
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      console.warn('Text translation error:', e);
+      return { original_text: text, translated_text: text };
+    }
+  },
+
   // --- ISSUE CREATION & INTAKE ---
+
   createIssue: async (issueData) => {
     const token = apiService.getToken();
     const headers = { 'Content-Type': 'application/json' };

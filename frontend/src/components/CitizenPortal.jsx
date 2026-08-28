@@ -25,13 +25,33 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [publicIssues, setPublicIssues] = useState([]);
+
+  // Fetch all public community issues from Database on mount
+  useEffect(() => {
+    const fetchPublicData = async () => {
+      try {
+        const pub = await apiService.getPublicIssues();
+        if (pub && pub.length > 0) {
+          setPublicIssues(pub);
+        }
+      } catch (err) {
+        console.warn('Could not fetch public issues feed:', err);
+      }
+    };
+    fetchPublicData();
+  }, []);
+
   // Filter My Complaints (Created by Logged-in Citizen)
   const myComplaints = complaints.filter(c => 
-    (!userAuth?.email || c.reporterEmail === userAuth.email || c.reporter_id === userAuth.civic_user_id || true)
+    (c.reporterEmail === userAuth?.email || c.reporter_id === userAuth?.civic_user_id)
   );
 
-  // Public Complaints in Area (Anonymized PII)
-  const publicComplaints = complaints.filter(c => !c.is_duplicate);
+  // Public Complaints in Area (All non-duplicate complaints across the city)
+  const publicComplaintsList = publicIssues.length > 0 
+    ? publicIssues 
+    : complaints.filter(c => !c.is_duplicate);
+
 
   const filteredMyComplaints = myComplaints.filter(c => {
     const matchCat = categoryFilter === 'ALL' || (c.categoryEn || c.category || '').toUpperCase() === categoryFilter.toUpperCase();
@@ -178,7 +198,7 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
           {selectedSection === 'heatmap' && (
             <div style={{ marginBottom: '24px' }}>
               <CivicHeatmapView 
-                publicIssues={publicComplaints}
+                publicIssues={publicComplaintsList}
                 onViewDetails={(comp) => {
                   const found = complaints.find(c => c.id === comp.id);
                   if (found) setSelectedComplaint(found);
@@ -218,7 +238,8 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
 
                   {/* CARDS GRID */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '18px' }}>
-                    {(selectedSection === 'my' ? filteredMyComplaints : publicComplaints).map(comp => (
+                    {(selectedSection === 'my' ? filteredMyComplaints : publicComplaintsList).map(comp => (
+
                       <div key={comp.id} className="glass-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>

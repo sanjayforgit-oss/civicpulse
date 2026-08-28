@@ -143,6 +143,38 @@ async def upload_media_pii(
         }
     }
 
+class TextTranslationRequest(BaseModel):
+
+    text: str
+    source_language: Optional[str] = "auto"
+    target_language: Optional[str] = "en-IN"
+
+@router.post("/text/translate")
+async def translate_typed_text(req: TextTranslationRequest):
+    """Translates typed vernacular text (Hindi, Tamil, Telugu, etc.) to English."""
+    if not req.text or not req.text.strip():
+        return {"original_text": "", "translated_text": "", "detected_language": "en-IN"}
+
+    try:
+        from backend.core.sarvam import sarvam_engine
+        res = await sarvam_engine.translate_text(
+            input_text=req.text.strip(),
+            source_language_code=req.source_language or "auto",
+            target_language_code=req.target_language or "en-IN"
+        )
+        return {
+            "original_text": req.text,
+            "translated_text": res.get("translated_text", req.text),
+            "source_language": res.get("source_language_code", "hi-IN")
+        }
+    except Exception as e:
+        logger.error(f"Text translation error: {e}")
+        return {
+            "original_text": req.text,
+            "translated_text": req.text,
+            "source_language": "auto"
+        }
+
 @router.post("/audio/process-voice-complaint")
 async def process_voice_complaint(
     audio_file: Optional[UploadFile] = File(None)

@@ -59,10 +59,61 @@ export default function OfficerPortal({ lang, complaints = [], setComplaints }) 
     ? TN_DEPARTMENTS 
     : Object.values(TN_DEPARTMENTS);
 
-  // Filtered list based on department selection
+  // Fetch live officer dashboard issues from Backend API on mount
+  useEffect(() => {
+
+    const fetchOfficerData = async () => {
+      try {
+        const res = await apiService.getOfficerDashboard();
+        if (res && res.data && res.data.assigned_issues && res.data.assigned_issues.length > 0) {
+          const liveOfficerIssues = res.data.assigned_issues.map(iss => ({
+            id: iss.id,
+            category: iss.category || 'Roads & Infrastructure',
+            categoryEn: iss.category || 'Roads & Infrastructure',
+            department: iss.department || 'Highways Department (State Highways)',
+            titleTa: iss.original_description || 'புகார் பதிவு',
+            titleEn: iss.processed_description || iss.description || 'Civic Defect',
+            original_description: iss.original_description || iss.description,
+            processed_description: iss.processed_description || iss.description,
+            description: iss.processed_description || iss.description,
+            location_ward: iss.location_ward || 'Ward 104, Anna Nagar',
+            ward: iss.location_ward || 'Ward 104, Anna Nagar',
+            status: iss.status || 'OPEN',
+            workflow_state: iss.workflow_state || 'ASSIGNED',
+            priority: iss.ai_severity || 'HIGH',
+            photoUrl: iss.media_url || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=600&q=80',
+            slaDeadline: iss.sla_deadline,
+            slaStatus: iss.sla_status_display || 'ON_TIME',
+            slaDaysRemaining: 3
+          }));
+          
+          setComplaints(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const newUnique = liveOfficerIssues.filter(l => !existingIds.has(l.id));
+            return [...newUnique, ...prev];
+          });
+        }
+      } catch (err) {
+        console.warn('Could not fetch live officer dashboard, using state:', err);
+      }
+    };
+    fetchOfficerData();
+  }, []);
+
+  // Filtered list based on department selection with robust fuzzy category matching
   const filteredComplaints = selectedDept === 'ALL'
     ? complaints
-    : complaints.filter(c => c.department === selectedDept);
+    : complaints.filter(c => {
+        const d = (c.department || c.category || c.categoryEn || '').toUpperCase();
+        if (selectedDept === 'HIGHWAYS') return d.includes('HIGHWAY') || d.includes('ROAD') || d.includes('PWD');
+        if (selectedDept === 'SWM') return d.includes('SWM') || d.includes('GARBAGE') || d.includes('SOLID');
+        if (selectedDept === 'TNEB') return d.includes('TNEB') || d.includes('LIGHT') || d.includes('ELECTRIC') || d.includes('POWER');
+        if (selectedDept === 'CMWSSB') return d.includes('WATER') || d.includes('SEWER') || d.includes('DRAIN') || d.includes('CMWSSB');
+        if (selectedDept === 'CORPORATION') return d.includes('CORP') || d.includes('HEALTH') || d.includes('OTHER');
+        return d === selectedDept.toUpperCase();
+      });
+
+
 
   // Summary Metrics
   const summaryMetrics = {

@@ -86,8 +86,9 @@ def get_dashboard_summary(
         in_progress=active_cnt,
         resolved=resolved_cnt,
         reopened=reopened_cnt,
-        recent_issues=[format_pub_issue(i) for i in my_issues] if my_issues else [format_pub_issue(i) for i in all_issues[:5]]
+        recent_issues=[format_pub_issue(i) for i in all_issues] if all_issues else [format_pub_issue(i) for i in my_issues]
     )
+
 
 @router.get("/my-issues")
 def get_my_issues(
@@ -158,6 +159,7 @@ def get_public_issues(
         )
         for i in issues
     ]
+
 
 
 @router.get("/heatmap-clusters", response_model=List[HeatmapPointResponse])

@@ -30,6 +30,30 @@ export default function MultilingualTextStep({
     };
   }, [audioUrl]);
 
+  // Live Auto-Translate typed Hindi / Tamil text with a 500ms debounce
+  useEffect(() => {
+    if (!description || !description.trim() || description.length < 3) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiService.translateText(description.trim(), 'auto');
+        if (res && res.translated_text) {
+          setVoiceData(prev => ({
+            ...prev,
+            originalTranscript: description,
+            translatedEnglish: res.translated_text,
+            detectedLang: res.source_language || language
+          }));
+        }
+      } catch (err) {
+        console.warn('Auto-translate debounce note:', err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [description]);
+
+
   // Start Voice Recording
   const startRecording = async () => {
     try {
@@ -235,6 +259,33 @@ export default function MultilingualTextStep({
           {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
         </button>
       </div>
+
+      {/* AI AUTO-TRANSLATION PREVIEW CARD (FOR TYPED HINDI / TAMIL / REGIONAL TEXT) */}
+      {description && description.trim() && (
+        <div style={{
+          background: 'rgba(56, 189, 248, 0.08)',
+          border: '1px solid rgba(56, 189, 248, 0.25)',
+          borderRadius: '8px',
+          padding: '12px 14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              ✨ AI English Translation (for Municipal Engineer):
+            </span>
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+              Sarvam Mayura + Gemini 2.5 Flash
+            </span>
+          </div>
+
+          <p style={{ margin: 0, fontSize: '0.88rem', color: '#e0f2fe', fontStyle: 'italic' }}>
+            {voiceData?.translatedEnglish || description}
+          </p>
+        </div>
+      )}
+
 
       {/* SARVAM AI TRANSCRIPTION LOADING INDICATOR */}
       {isProcessingSarvam && (
