@@ -187,8 +187,9 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
               className={`glass-btn ${selectedSection === 'public' ? 'glass-btn-primary' : ''}`}
               style={{ fontSize: '0.82rem', padding: '8px 16px' }}
             >
-              <span>SECTION B: Public Area Complaints ({publicComplaints.length})</span>
+              <span>SECTION B: Public Area Complaints ({publicComplaintsList.length})</span>
             </button>
+
 
             <button
               onClick={() => setSelectedSection('heatmap')}
