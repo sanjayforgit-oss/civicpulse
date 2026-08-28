@@ -43,9 +43,14 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
   }, []);
 
   // Filter My Complaints (Created by Logged-in Citizen)
-  const myComplaints = complaints.filter(c => 
-    (c.reporterEmail === userAuth?.email || c.reporter_id === userAuth?.civic_user_id)
-  );
+  const myComplaints = complaints.filter(c => {
+    if (!userAuth || (!userAuth.email && !userAuth.civic_user_id)) return true;
+    if (c.reporterEmail && c.reporterEmail === userAuth.email) return true;
+    if (c.reporter_id && c.reporter_id === userAuth.civic_user_id) return true;
+    if (!c.reporterEmail && !c.reporter_id) return true; // Fallback for newly created state
+    return false;
+  });
+
 
   // Public Complaints in Area (All non-duplicate complaints across the city)
   const publicComplaintsList = publicIssues.length > 0 

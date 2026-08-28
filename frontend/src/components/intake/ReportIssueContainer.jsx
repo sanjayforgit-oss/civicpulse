@@ -117,9 +117,30 @@ export default function ReportIssueContainer({ userAuth, onComplaintCreated }) {
         });
 
         if (onComplaintCreated) {
-          onComplaintCreated(res);
+          const formattedComplaint = {
+            id: res.id,
+            titleTa: res.original_description || res.description || 'புகார் பதிவு',
+            titleEn: res.processed_description || res.description || 'Civic Complaint',
+            original_description: res.original_description || res.description,
+            processed_description: res.processed_description || res.description,
+            categoryEn: res.ai_category || 'Roads & Infrastructure',
+            department: res.ai_category || 'HIGHWAYS',
+            lat: res.latitude,
+            lon: res.longitude,
+            ward: res.location_ward || 'Ward 104, Anna Nagar',
+            photoUrl: res.media_url || photoUrl,
+            reporterEmail: userAuth?.email || 'citizen@example.com',
+            reporter_id: userAuth?.civic_user_id,
+            status: res.status || 'OPEN',
+            workflow_state: res.workflow_state || 'ASSIGNED',
+            priority: res.ai_severity || 'HIGH',
+            createdAt: new Date().toISOString(),
+            slaDaysRemaining: 3
+          };
+          onComplaintCreated(formattedComplaint);
         }
       }
+
 
 
       // Reset form
