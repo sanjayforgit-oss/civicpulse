@@ -242,10 +242,29 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
                   </div>
 
                   {/* CARDS GRID */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '18px' }}>
-                    {(selectedSection === 'my' ? filteredMyComplaints : publicComplaintsList).map(comp => (
+                  {(selectedSection === 'my' ? filteredMyComplaints : publicComplaintsList).length === 0 ? (
+                    <div className="glass-panel" style={{ padding: '32px', textAlign: 'center' }}>
+                      <FileText size={40} color="var(--primary)" style={{ margin: '0 auto 12px' }} />
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                        {selectedSection === 'my' ? 'No Complaints Found' : 'No Public Area Complaints'}
+                      </h3>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                        {selectedSection === 'my' 
+                          ? "You haven't reported any civic defects yet under this identity."
+                          : "No public complaints match your filter criteria."}
+                      </p>
+                      {selectedSection === 'my' && (
+                        <button onClick={() => setActiveTab('raise')} className="glass-btn glass-btn-primary" style={{ margin: '0 auto' }}>
+                          <Sparkles size={16} />
+                          <span>Report New Issue</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '18px' }}>
+                      {(selectedSection === 'my' ? filteredMyComplaints : publicComplaintsList).map(comp => (
+                        <div key={comp.id || Math.random()} className="glass-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
 
-                      <div key={comp.id} className="glass-panel" style={{ padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                             <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--primary)' }}>{comp.id}</span>
@@ -309,8 +328,9 @@ export default function CitizenPortal({ lang, complaints = [], setComplaints, us
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               ) : (
                 /* SINGLE COMPLAINT PROGRESS & VERIFICATION VIEW */
